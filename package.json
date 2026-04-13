@@ -1,0 +1,295 @@
+"""
+seed_data.py — Populate the database with demo data
+
+PURPOSE:
+  When you run this script it inserts:
+    - 3 users  (admin, fleet manager, sample customer)
+    - 8 vehicles (mix of car/suv/bike/van)
+    - 2 pricing rules (weekend surcharge + a demo coupon)
+    - 2 maintenance logs
+
+USAGE:
+  cd backend
+  python seed_data.py
+
+IMPORTANT: Only run once on a fresh database. Running it twice will fail
+on unique-constraint violations (emails, registration numbers).
+To reset: DROP all tables (or drop the DB) and re-run.
+"""
+
+from database import SessionLocal, engine
+import models
+from auth import hash_password
+from datetime import datetime, timedelta
+
+# Ensure tables exist
+models.Base.metadata.create_all(bind=engine)
+
+db = SessionLocal()
+
+try:
+    # ──────────────────────────────────────────────────────────
+    #  USERS
+    # ──────────────────────────────────────────────────────────
+    print("Creating users...")
+
+    admin = models.User(
+        name           = "Admin User",
+        email          = "admin@rental.com",
+        phone          = "9000000001",
+        password_hash  = hash_password("admin123"),   # Login: admin@rental.com / admin123
+        role           = models.UserRole.ADMIN,
+        is_active      = True,
+    )
+
+    fleet_mgr = models.User(
+        name           = "Ravi Kumar (Fleet Manager)",
+        email          = "fleet@rental.com",
+        phone          = "9000000002",
+        password_hash  = hash_password("fleet123"),   # Login: fleet@rental.com / fleet123
+        role           = models.UserRole.FLEET_MANAGER,
+        is_active      = True,
+    )
+
+    customer = models.User(
+        name            = "Sarah Sharma (Customer)",
+        email           = "sarah@example.com",
+        phone           = "9876543210",
+        password_hash   = hash_password("sarah123"),  # Login: sarah@example.com / sarah123
+        role            = models.UserRole.CUSTOMER,
+        driving_license = "DL1234567890",
+        is_active       = True,
+    )
+
+    db.add_all([admin, fleet_mgr, customer])
+    db.commit()
+    print("  ✓ 3 users created")
+
+    # ──────────────────────────────────────────────────────────
+    #  VEHICLES
+    # ──────────────────────────────────────────────────────────
+    print("Creating vehicles...")
+
+    vehicles = [
+        models.Vehicle(
+            vehicle_type     = models.VehicleType.SUV,
+            brand            = "Toyota",
+            model            = "Fortuner",
+            year             = 2022,
+            color            = "White",
+            fuel_type        = models.FuelType.DIESEL,
+            seating_capacity = 7,
+            registration_number = "MH12AB1234",
+            price_per_hour   = 150.0,
+            price_per_day    = 1000.0,
+            status           = models.VehicleStatus.AVAILABLE,
+            description      = "Powerful 7-seater SUV, perfect for family trips and off-road adventures.",
+            location         = "Mumbai Hub",
+            fitness_expiry   = datetime.utcnow() + timedelta(days=365),
+            insurance_expiry = datetime.utcnow() + timedelta(days=300),
+        ),
+        models.Vehicle(
+            vehicle_type     = models.VehicleType.CAR,
+            brand            = "Honda",
+            model            = "City",
+            year             = 2023,
+            color            = "Silver",
+            fuel_type        = models.FuelType.PETROL,
+            seating_capacity = 5,
+            registration_number = "MH12CD5678",
+            price_per_hour   = 80.0,
+            price_per_day    = 550.0,
+            status           = models.VehicleStatus.AVAILABLE,
+            description      = "Elegant sedan with excellent fuel efficiency. Ideal for city drives.",
+            location         = "Mumbai Hub",
+            fitness_expiry   = datetime.utcnow() + timedelta(days=400),
+            insurance_expiry = datetime.utcnow() + timedelta(days=350),
+        ),
+        models.Vehicle(
+            vehicle_type     = models.VehicleType.CAR,
+            brand            = "Maruti",
+            model            = "Swift",
+            year             = 2023,
+            color            = "Red",
+            fuel_type        = models.FuelType.PETROL,
+            seating_capacity = 5,
+            registration_number = "MH14EF9012",
+            price_per_hour   = 60.0,
+            price_per_day    = 400.0,
+            status           = models.VehicleStatus.AVAILABLE,
+            description      = "Compact hatchback, perfect for solo or couple trips in the city.",
+            location         = "Pune Hub",
+            fitness_expiry   = datetime.utcnow() + timedelta(days=500),
+            insurance_expiry = datetime.utcnow() + timedelta(days=450),
+        ),
+        models.Vehicle(
+            vehicle_type     = models.VehicleType.VAN,
+            brand            = "Force",
+            model            = "Traveller",
+            year             = 2021,
+            color            = "White",
+            fuel_type        = models.FuelType.DIESEL,
+            seating_capacity = 12,
+            registration_number = "MH01GH3456",
+            price_per_hour   = 200.0,
+            price_per_day    = 1500.0,
+            status           = models.VehicleStatus.AVAILABLE,
+            description      = "12-seater van for group travel, corporate events, and airport transfers.",
+            location         = "Mumbai Hub",
+            fitness_expiry   = datetime.utcnow() + timedelta(days=200),
+            insurance_expiry = datetime.utcnow() + timedelta(days=180),
+        ),
+        models.Vehicle(
+            vehicle_type     = models.VehicleType.BIKE,
+            brand            = "Royal Enfield",
+            model            = "Meteor 350",
+            year             = 2023,
+            color            = "Fireball Orange",
+            fuel_type        = models.FuelType.PETROL,
+            seating_capacity = 2,
+            registration_number = "MH12IJ7890",
+            price_per_hour   = 40.0,
+            price_per_day    = 250.0,
+            status           = models.VehicleStatus.AVAILABLE,
+            description      = "Iconic cruiser bike, perfect for weekend highway rides.",
+            location         = "Pune Hub",
+            fitness_expiry   = datetime.utcnow() + timedelta(days=600),
+            insurance_expiry = datetime.utcnow() + timedelta(days=550),
+        ),
+        models.Vehicle(
+            vehicle_type     = models.VehicleType.CAR,
+            brand            = "Hyundai",
+            model            = "Creta",
+            year             = 2022,
+            color            = "Phantom Black",
+            fuel_type        = models.FuelType.PETROL,
+            seating_capacity = 5,
+            registration_number = "MH12KL1122",
+            price_per_hour   = 100.0,
+            price_per_day    = 700.0,
+            status           = models.VehicleStatus.AVAILABLE,
+            description      = "Feature-loaded compact SUV with panoramic sunroof.",
+            location         = "Mumbai Hub",
+            fitness_expiry   = datetime.utcnow() + timedelta(days=450),
+            insurance_expiry = datetime.utcnow() + timedelta(days=420),
+        ),
+        models.Vehicle(
+            vehicle_type     = models.VehicleType.CAR,
+            brand            = "Tata",
+            model            = "Nexon EV",
+            year             = 2023,
+            color            = "Daytona Grey",
+            fuel_type        = models.FuelType.ELECTRIC,
+            seating_capacity = 5,
+            registration_number = "MH12MN3344",
+            price_per_hour   = 90.0,
+            price_per_day    = 600.0,
+            status           = models.VehicleStatus.UNDER_MAINTENANCE,
+            description      = "100% electric SUV, zero emissions. Range: 312 km per charge.",
+            location         = "Mumbai Hub",
+            fitness_expiry   = datetime.utcnow() + timedelta(days=600),
+            insurance_expiry = datetime.utcnow() + timedelta(days=580),
+        ),
+        models.Vehicle(
+            vehicle_type     = models.VehicleType.SUV,
+            brand            = "Mahindra",
+            model            = "Thar",
+            year             = 2022,
+            color            = "Rocky Beige",
+            fuel_type        = models.FuelType.DIESEL,
+            seating_capacity = 4,
+            registration_number = "MH12OP5566",
+            price_per_hour   = 120.0,
+            price_per_day    = 850.0,
+            status           = models.VehicleStatus.AVAILABLE,
+            description      = "Legendary off-roader. Take it anywhere — mountains, beaches, mud.",
+            location         = "Pune Hub",
+            fitness_expiry   = datetime.utcnow() + timedelta(days=320),
+            insurance_expiry = datetime.utcnow() + timedelta(days=290),
+        ),
+    ]
+
+    db.add_all(vehicles)
+    db.commit()
+    print(f"  ✓ {len(vehicles)} vehicles created")
+
+    # ──────────────────────────────────────────────────────────
+    #  PRICING RULES
+    # ──────────────────────────────────────────────────────────
+    print("Creating pricing rules...")
+
+    rules = [
+        models.PricingRule(
+            rule_name        = "Weekend Surcharge",
+            rule_type        = "weekend",
+            multiplier       = 1.20,        # 20% extra on weekend hours
+            discount_percent = 0.0,
+            description      = "20% surcharge applied to Saturday and Sunday rental hours.",
+            is_active        = True,
+        ),
+        models.PricingRule(
+            rule_name        = "Launch Discount Coupon",
+            rule_type        = "coupon",
+            multiplier       = 1.0,
+            discount_percent = 10.0,        # 10% flat discount
+            coupon_code      = "SAVE10",
+            max_uses         = 100,
+            description      = "10% off for launch promotion. Limited to 100 uses.",
+            is_active        = True,
+        ),
+    ]
+
+    db.add_all(rules)
+    db.commit()
+    print("  ✓ 2 pricing rules created")
+
+    # ──────────────────────────────────────────────────────────
+    #  MAINTENANCE LOGS
+    # ──────────────────────────────────────────────────────────
+    print("Creating maintenance logs...")
+
+    db.refresh(fleet_mgr)
+    db.refresh(vehicles[0])   # Fortuner
+    db.refresh(vehicles[6])   # Nexon EV (under maintenance)
+
+    logs = [
+        models.MaintenanceLog(
+            vehicle_id       = vehicles[0].id,
+            performed_by     = fleet_mgr.id,
+            maintenance_type = "Full Service",
+            description      = "Oil change, filter replacement, brake inspection, tyre pressure check.",
+            cost             = 4500.0,
+            date_performed   = datetime.utcnow() - timedelta(days=30),
+            next_due_date    = datetime.utcnow() + timedelta(days=60),
+        ),
+        models.MaintenanceLog(
+            vehicle_id       = vehicles[6].id,   # Nexon EV
+            performed_by     = fleet_mgr.id,
+            maintenance_type = "Battery Diagnostic",
+            description      = "Battery health check and firmware update. Vehicle under maintenance.",
+            cost             = 2000.0,
+            date_performed   = datetime.utcnow() - timedelta(days=1),
+            next_due_date    = datetime.utcnow() + timedelta(days=180),
+        ),
+    ]
+
+    db.add_all(logs)
+    db.commit()
+    print("  ✓ 2 maintenance logs created")
+
+    print("\n" + "="*50)
+    print("  SEED DATA COMPLETE")
+    print("="*50)
+    print("\nLogin credentials:")
+    print("  Admin   : admin@rental.com   / admin123")
+    print("  Fleet   : fleet@rental.com   / fleet123")
+    print("  Customer: sarah@example.com  / sarah123")
+    print("\nDemo coupon code: SAVE10 (10% off)")
+    print("="*50)
+
+except Exception as e:
+    db.rollback()
+    print(f"\nERROR: {e}")
+    print("Database may already be seeded. Drop tables and retry.")
+finally:
+    db.close()

@@ -1,0 +1,114 @@
+"""
+main.py — FastAPI Application Entry Point
+
+WHY FASTAPI over Flask?
+  - Automatic Swagger/OpenAPI docs at /docs (great for hackathon demos!)
+  - Built-in request validation via Pydantic (no manual if-checks)
+  - Async support out of the box (better performance under load)
+  - Type hints = better IDE support and self-documenting code
+  - 10x faster than Flask in benchmarks (Starlette underneath)
+
+HOW THIS FILE WORKS:
+  1. Creates the FastAPI app instance with metadata
+  2. Adds CORS middleware so the React frontend (port 3000) can call us (port 8000)
+  3. Calls Base.metadata.create_all() → PostgreSQL tables created automatically
+  4. Mounts /static for serving vehicle photos
+  5. Registers all domain routers (auth, vehicles, bookings, etc.)
+  6. Exposes a root health-check endpoint
+
+TO START THE SERVER:
+  cd backend
+  pip install -r requirements.txt
+  uvicorn main:app --reload --port 8000
+  → API running at http://localhost:8000
+  → Interactive docs at http://localhost:8000/docs
+"""
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
+
+# Import the DB engine + all models so create_all() sees them
+from database import engine
+import models
+
+# Import all routers
+from routers import (
+    auth_router,
+    vehicles_router,
+    bookings_router,
+    maintenance_router,
+    pricing_router,
+    dashboard_router,
+)
+
+# ──────────────────────────────────────────────────────────────
+#  Auto-create all PostgreSQL tables from ORM model definitions
+#  Safe to call on every startup: CREATE TABLE IF NOT EXISTS
+# ──────────────────────────────────────────────────────────────
+models.Base.metadata.create_all(bind=engine)
+
+# ──────────────────────────────────────────────────────────────
+#  Create FastAPI app
+# ──────────────────────────────────────────────────────────────
+app = FastAPI(
+    title       = "Vehicle Rental Management API",
+    description = (
+        "Complete vehicle rental platform built for HCL Hackathon.\n\n"
+        "Roles: **Admin** | **Customer** | **Fleet Manager**\n\n"
+        "Use `/api/auth/login` to get a Bearer token, "
+        "then click 'Authorize' in Swagger UI to test protected endpoints."
+    ),
+    version = "1.0.0",
+    docs_url = "/docs",      # Swagger UI
+    redoc_url = "/redoc",    # Alternative ReDoc UI
+)
+
+# ──────────────────────────────────────────────────────────────
+#  CORS — Cross-Origin Resource Sharing
+#
+#  Without this, the browser blocks our React app (localhost:3000)
+#  from calling our API (localhost:8000) because they're different "origins".
+#  This middleware adds the right headers to every response.
+#
+#  In production: replace "*" with your actual frontend domain.
+# ──────────────────────────────────────────────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins     = ["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials = True,
+    allow_methods     = ["*"],
+    allow_headers     = ["*"],
+)
+
+# ──────────────────────────────────────────────────────────────
+#  Static file serving — vehicle photos
+#  Files in ./static/ are served at http://localhost:8000/static/...
+# ──────────────────────────────────────────────────────────────
+os.makedirs("static/vehicles", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# ──────────────────────────────────────────────────────────────
+#  Register domain routers
+# ──────────────────────────────────────────────────────────────
+app.include_router(auth_router.router)
+app.include_router(vehicles_router.router)
+app.include_router(bookings_router.router)
+app.include_router(maintenance_router.router)
+app.include_router(pricing_router.router)
+app.include_router(dashboard_router.router)
+
+
+# ──────────────────────────────────────────────────────────────
+#  Root health-check  (used by load balancers / uptime monitors)
+# ──────────────────────────────────────────────────────────────
+@app.get("/", tags=["Health"])
+def root():
+    """Returns a simple status message to confirm the API is running."""
+    return {
+        "status":  "running",
+        "message": "Vehicle Rental Management API",
+        "docs":    "/docs",
+        "version": "1.0.0",
+    }
